@@ -96,3 +96,33 @@ describe('balanceTeams no-repeat', () => {
     expect(p1InA).not.toBe(p2InA);
   });
 });
+
+describe('balanceTeams handicap mode', () => {
+  it('handicap mode produces same split as simple mode', () => {
+    const players = [
+      makePlayer('a', 40), makePlayer('b', 30),
+      makePlayer('c', 20), makePlayer('d', 10),
+    ];
+    const simple = balanceTeams(players, 'simple');
+    const handicap = balanceTeams(players, 'handicap');
+    // Both should find the same optimal split
+    expect(handicap.scoreDiff).toBe(simple.scoreDiff);
+  });
+
+  it('no-repeat-handicap avoids previous teammates same as no-repeat-simple', () => {
+    const p1 = makePlayer('p1', 10);
+    const p2 = makePlayer('p2', 10);
+    const p3 = makePlayer('p3', 10);
+    const p4 = makePlayer('p4', 10);
+    const history: HistoryEntry = {
+      teamAPuuids: ['p1', 'p2'],
+      teamBPuuids: ['p3', 'p4'],
+      timestamp: Date.now(),
+    };
+    const result = balanceTeams([p1, p2, p3, p4], 'no-repeat-handicap', history);
+    const teamAPuuids = result.teamA.map(p => p.puuid);
+    const p1InA = teamAPuuids.includes('p1');
+    const p2InA = teamAPuuids.includes('p2');
+    expect(p1InA).not.toBe(p2InA);
+  });
+});

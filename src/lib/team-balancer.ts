@@ -36,6 +36,14 @@ function calcRepeatPenalty(
   return penalty;
 }
 
+/**
+ * Balances players into two teams based on the specified mode.
+ *
+ * DESIGN NOTE: 'handicap' and 'no-repeat-handicap' modes use identical balancing logic
+ * to their 'simple' and 'no-repeat-simple' counterparts respectively. The difference
+ * is that after balancing, the assignHandicaps() function (in handicap.ts) assigns ☆
+ * handicaps to strong players separately. This balancer only handles team composition.
+ */
 export function balanceTeams(
   players: PlayerData[],
   mode: TeamMode,
