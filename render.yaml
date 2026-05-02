@@ -3,6 +3,8 @@ services:
   - type: web
     name: valo-custom
     env: node
+    region: singapore
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -10,3 +12,7 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"
