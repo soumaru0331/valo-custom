@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { PlayerData } from '@/types';
+import { RANK_VALUES } from '@/data/ranks';
+import { calcTotalScore } from '@/lib/scoring';
 import { PlayerCard } from './PlayerCard';
 
 interface Props {
@@ -93,6 +95,15 @@ export function PlayerInputForm({ players, onPlayersChange, onNext }: Props) {
             key={p.puuid}
             player={p}
             onRemove={() => onPlayersChange(players.filter(x => x.puuid !== p.puuid))}
+            onUpdateTier={(tier) => {
+              const rankValue = RANK_VALUES[tier] ?? 0;
+              const totalScore = calcTotalScore(rankValue, 0.5);
+              onPlayersChange(players.map(x =>
+                x.puuid === p.puuid
+                  ? { ...x, competitiveTier: tier, rankValue, totalScore }
+                  : x
+              ));
+            }}
           />
         ))}
       </div>
