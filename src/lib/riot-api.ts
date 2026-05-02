@@ -88,8 +88,11 @@ async function fetchHenrikStats(
     return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0, accountLevel: 0 };
   }
 
-  // force=true で最新20試合を取得
-  const matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as Record<string, unknown>[] | null;
+  // コンペティティブ優先、データなければ全モードにフォールバック
+  let matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as Record<string, unknown>[] | null;
+  if (!matches || !Array.isArray(matches) || matches.length === 0) {
+    matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?size=20`) as Record<string, unknown>[] | null;
+  }
   if (!matches || !Array.isArray(matches) || matches.length === 0) {
     return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0, accountLevel: 0 };
   }
