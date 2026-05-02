@@ -1,0 +1,12 @@
+# render.yaml
+services:
+  - type: web
+    name: valo-custom
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: RIOT_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
