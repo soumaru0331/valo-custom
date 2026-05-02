@@ -5,14 +5,17 @@ import { PlayerData } from '@/types';
 import { RANK_VALUES } from '@/data/ranks';
 import { calcTotalScore, calcPerformanceScore, detectSmurf } from '@/lib/scoring';
 
-const API_KEY = process.env.RIOT_API_KEY ?? '';
+const RIOT_KEY = process.env.RIOT_API_KEY ?? '';
+const HENRIK_KEY = process.env.HENRIK_API_KEY ?? '';
 const ACCOUNT_BASE = 'https://asia.api.riotgames.com';
-const TRACKER_BASE = 'https://api.tracker.gg/api/v2/valorant/standard/profile/riot';
+const HENRIK_BASE = 'https://api.henrikdev.xyz/valorant';
+
+// ── Riot Account API ────────────────────────────────────────────────────────
 
 async function riotFetch(url: string): Promise<Response> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(url, {
-      headers: { 'X-Riot-Token': API_KEY },
+      headers: { 'X-Riot-Token': RIOT_KEY },
       next: { revalidate: 0 },
     });
     if (res.status === 429) {
@@ -26,120 +29,144 @@ async function riotFetch(url: string): Promise<Response> {
 }
 
 async function getPuuid(gameName: string, tagLine: string): Promise<string> {
-  if (!API_KEY) throw new Error('RIOT_API_KEY が設定されていません');
+  if (!RIOT_KEY) throw new Error('RIOT_API_KEY が設定されていません');
 
   const url = `${ACCOUNT_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
   const res = await riotFetch(url);
 
   if (res.status === 401 || res.status === 403) {
-    throw new Error('Riot APIキーが無効または期限切れです。developer.riotgames.com で新しいキーを取得してください。');
+    throw new Error('Riot APIキーが無効または期限切れです');
   }
   if (res.status === 404) {
     throw new Error(`プレイヤーが見つかりません: ${gameName}#${tagLine}`);
   }
-  if (!res.ok) {
-    throw new Error(`Riot API error ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Riot API error ${res.status}`);
 
   const data = await res.json();
   return data.puuid as string;
 }
 
-interface TrackerStats {
+// ── HenrikDev API ───────────────────────────────────────────────────────────
+
+async function henrikFetch(path: string): Promise<unknown> {
+  const res = await fetch(`${HENRIK_BASE}${path}`, {
+    headers: { 'Authorization': HENRIK_KEY },
+    next: { revalidate: 0 },
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json?.data ?? null;
+}
+
+interface HenrikStats {
   competitiveTier: number;
   avgKda: number;
+  hsRate: number;
   winRate: number;
   matchCount: number;
 }
 
-function extractTierFromIconUrl(iconUrl: string): number {
-  // e.g. "https://trackercdn.com/.../tiersv2/21.png" → 21
-  const match = iconUrl.match(/tiersv2\/(\d+)\.png/);
-  return match ? parseInt(match[1]) : 0;
-}
+async function fetchHenrikStats(
+  gameName: string,
+  tagLine: string,
+): Promise<HenrikStats | null> {
+  if (!HENRIK_KEY) return null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getStatValue(stats: any, key: string): number {
-  const raw = stats?.[key]?.value;
-  return raw !== undefined && raw !== null ? parseFloat(String(raw)) || 0 : 0;
-}
+  const name = encodeURIComponent(gameName);
+  const tag = encodeURIComponent(tagLine);
 
-async function fetchTrackerStats(gameName: string, tagLine: string): Promise<TrackerStats | null> {
-  const encoded = encodeURIComponent(`${gameName}#${tagLine}`);
-  const url = `${TRACKER_BASE}/${encoded}?segments=overview`;
+  // force=true を付けて毎回最新データを取得
+  // HenrikのPUUID(UUID形式)はRiotのPUUID(base64形式)と別物なので必ずここから取得する
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mmr = await henrikFetch(`/v2/mmr/ap/${name}/${tag}?force=true`) as any;
+  const competitiveTier: number = mmr?.current_data?.currenttier ?? 0;
+  const puuid: string = mmr?.puuid ?? '';
 
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Referer': 'https://tracker.gg/valorant',
-        'Accept': 'application/json',
-        'Accept-Language': 'ja,en;q=0.9',
-      },
-      next: { revalidate: 0 },
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const segments: any[] = data?.data?.segments ?? [];
-    if (!segments.length) return null;
-
-    // Overview segment has current rank + aggregate stats
-    const overview = segments.find(s => s.type === 'overview');
-    // Season segment has per-season stats
-    const season = segments.find(s => s.type === 'season');
-    // Peak rating segment for fallback rank
-    const peakRating = segments.find(s => s.type === 'peak-rating');
-
-    const statSeg = season ?? overview;
-    const stats = statSeg?.stats ?? {};
-
-    // Extract current rank from overview, fall back to peak-rating
-    let competitiveTier = 0;
-    const rankIconUrl: string = overview?.stats?.rank?.metadata?.iconUrl ?? '';
-    if (rankIconUrl) {
-      competitiveTier = extractTierFromIconUrl(rankIconUrl);
-    }
-    if (!competitiveTier && peakRating) {
-      const peakIconUrl: string = peakRating?.stats?.peakRating?.metadata?.iconUrl ?? '';
-      competitiveTier = extractTierFromIconUrl(peakIconUrl);
-    }
-
-    const avgKda = getStatValue(stats, 'kDRatio');
-    const winRatePct = getStatValue(stats, 'matchesWinPct');
-    const matchCount = getStatValue(stats, 'matchesPlayed');
-
-    return {
-      competitiveTier,
-      avgKda,
-      winRate: winRatePct / 100,
-      matchCount,
-    };
-  } catch {
-    return null;
+  // PUUIDが取れなければ試合データの照合が不可能なのでスキップ
+  if (!puuid) {
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
   }
+
+  // force=true で最新20試合を取得
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as any[];
+  if (!matches || !Array.isArray(matches) || matches.length === 0) {
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
+  }
+
+  let totalKills = 0, totalDeaths = 0, totalAssists = 0;
+  let totalHeadshots = 0, totalBodyshots = 0, totalLegshots = 0;
+  let wins = 0;
+  let validMatches = 0;
+
+  for (const match of matches) {
+    const players: unknown[] = match?.players?.all_players ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const me = players.find((p: any) => p.puuid === puuid) as any;
+    if (!me) continue;
+
+    const stats = me.stats ?? {};
+    const kills: number = stats.kills ?? 0;
+    const deaths: number = stats.deaths ?? 0;
+    const assists: number = stats.assists ?? 0;
+    const hs: number = stats.headshots ?? 0;
+    const bs: number = stats.bodyshots ?? 0;
+    const ls: number = stats.legshots ?? 0;
+
+    totalKills += kills;
+    totalDeaths += deaths;
+    totalAssists += assists;
+    totalHeadshots += hs;
+    totalBodyshots += bs;
+    totalLegshots += ls;
+
+    const myTeam: string = (me.team ?? '').toLowerCase();
+    const won: boolean =
+      myTeam === 'red'
+        ? match?.teams?.red?.has_won === true
+        : match?.teams?.blue?.has_won === true;
+    if (won) wins++;
+    validMatches++;
+  }
+
+  if (validMatches === 0) {
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
+  }
+
+  const avgKda = totalDeaths > 0
+    ? (totalKills + totalAssists) / totalDeaths
+    : totalKills + totalAssists;
+
+  const totalShots = totalHeadshots + totalBodyshots + totalLegshots;
+  const hsRate = totalShots > 0 ? totalHeadshots / totalShots : 0;
+  const winRate = wins / validMatches;
+
+  return { competitiveTier, avgKda, hsRate, winRate, matchCount: validMatches };
 }
+
+// ── Main export ─────────────────────────────────────────────────────────────
 
 export async function verifyAndBuildPlayer(
   gameName: string,
   tagLine: string
 ): Promise<PlayerData> {
   const puuid = await getPuuid(gameName, tagLine);
-  const tracker = await fetchTrackerStats(gameName, tagLine);
+  const stats = await fetchHenrikStats(gameName, tagLine);
 
-  const competitiveTier = tracker?.competitiveTier ?? 0;
-  const avgKda = tracker?.avgKda ?? 0;
-  const winRate = tracker?.winRate ?? 0;
-  const matchCount = tracker?.matchCount ?? 0;
+  const competitiveTier = stats?.competitiveTier ?? 0;
+  const avgKda = stats?.avgKda ?? 0;
+  const hsRate = stats?.hsRate ?? 0;
+  const winRate = stats?.winRate ?? 0;
+  const matchCount = stats?.matchCount ?? 0;
 
   const rankValue = RANK_VALUES[competitiveTier] ?? 0;
-  const performanceScore = tracker
-    ? calcPerformanceScore(avgKda, 0, winRate)
+  const performanceScore = matchCount > 0
+    ? calcPerformanceScore(avgKda, hsRate, winRate)
     : 0.5;
   const totalScore = calcTotalScore(rankValue, performanceScore);
-  const isSmurf = tracker ? detectSmurf(matchCount, winRate, avgKda) : false;
+  const isSmurf = matchCount > 0
+    ? detectSmurf(matchCount, winRate, avgKda)
+    : false;
 
   return {
     gameName,

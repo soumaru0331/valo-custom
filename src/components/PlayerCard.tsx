@@ -42,7 +42,10 @@ export function PlayerCard({ player, onRemove }: Props) {
               <span>スコア: {player.totalScore.toFixed(1)}</span>
             </>
           ) : (
-            <span>スコア: {player.totalScore.toFixed(1)}</span>
+            <>
+              <span>スコア: {player.totalScore.toFixed(1)}</span>
+              <span className="text-yellow-600">統計取得不可</span>
+            </>
           )}
         </div>
       </div>
