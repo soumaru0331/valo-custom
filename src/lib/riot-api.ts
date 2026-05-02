@@ -75,12 +75,12 @@ async function fetchHenrikStats(
   const name = encodeURIComponent(gameName);
   const tag = encodeURIComponent(tagLine);
 
-  // force=true を付けて毎回最新データを取得
+  // force=true で毎回最新データを取得
   // HenrikのPUUID(UUID形式)はRiotのPUUID(base64形式)と別物なので必ずここから取得する
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mmr = await henrikFetch(`/v2/mmr/ap/${name}/${tag}?force=true`) as any;
-  const competitiveTier: number = mmr?.current_data?.currenttier ?? 0;
-  const puuid: string = mmr?.puuid ?? '';
+  const mmr = await henrikFetch(`/v2/mmr/ap/${name}/${tag}?force=true`) as Record<string, unknown> | null;
+  const currentData = mmr?.current_data as Record<string, unknown> | undefined;
+  const competitiveTier: number = (currentData?.currenttier as number) ?? 0;
+  const puuid: string = (mmr?.puuid as string) ?? '';
 
   // PUUIDが取れなければ試合データの照合が不可能なのでスキップ
   if (!puuid) {
@@ -88,8 +88,7 @@ async function fetchHenrikStats(
   }
 
   // force=true で最新20試合を取得
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as any[];
+  const matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as Record<string, unknown>[] | null;
   if (!matches || !Array.isArray(matches) || matches.length === 0) {
     return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
   }
@@ -100,12 +99,11 @@ async function fetchHenrikStats(
   let validMatches = 0;
 
   for (const match of matches) {
-    const players: unknown[] = match?.players?.all_players ?? [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const me = players.find((p: any) => p.puuid === puuid) as any;
+    const players = ((match?.players as Record<string, unknown>)?.all_players as Record<string, unknown>[]) ?? [];
+    const me = players.find(p => p.puuid === puuid) as Record<string, unknown> | undefined;
     if (!me) continue;
 
-    const stats = me.stats ?? {};
+    const stats = (me?.stats ?? {}) as Record<string, number>;
     const kills: number = stats.kills ?? 0;
     const deaths: number = stats.deaths ?? 0;
     const assists: number = stats.assists ?? 0;
@@ -120,11 +118,12 @@ async function fetchHenrikStats(
     totalBodyshots += bs;
     totalLegshots += ls;
 
-    const myTeam: string = (me.team ?? '').toLowerCase();
+    const myTeam: string = ((me?.team as string) ?? '').toLowerCase();
+    const teams = match?.teams as Record<string, Record<string, unknown>> | undefined;
     const won: boolean =
       myTeam === 'red'
-        ? match?.teams?.red?.has_won === true
-        : match?.teams?.blue?.has_won === true;
+        ? teams?.red?.has_won === true
+        : teams?.blue?.has_won === true;
     if (won) wins++;
     validMatches++;
   }
