@@ -12,13 +12,8 @@ export function calcTotalScore(rankValue: number, performanceScore: number): num
 }
 
 export function detectSmurf(
-  matchCount: number,
-  winRate: number,
-  avgKda: number
+  accountLevel: number,
+  avgKda: number,
 ): boolean {
-  const fewMatches = matchCount < 20;
-  const highWinRate = winRate >= 0.70;
-  const highKda = avgKda >= 3.0;
-  const conditionsMet = [fewMatches, highWinRate, highKda].filter(Boolean).length;
-  return conditionsMet >= 2;
+  return accountLevel > 0 && accountLevel < 100 && avgKda >= 2.0;
 }

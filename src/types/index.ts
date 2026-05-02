@@ -18,6 +18,7 @@ export interface PlayerData {
   matchCount: number;      // Number of competitive matches found
   winRate: number;         // 0.0 to 1.0
   avgKda: number;
+  accountLevel: number;    // Account level (used for smurf detection)
   isSmurf: boolean;
 }
 

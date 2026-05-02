@@ -64,6 +64,7 @@ interface HenrikStats {
   hsRate: number;
   winRate: number;
   matchCount: number;
+  accountLevel: number;
 }
 
 async function fetchHenrikStats(
@@ -84,25 +85,27 @@ async function fetchHenrikStats(
 
   // PUUIDが取れなければ試合データの照合が不可能なのでスキップ
   if (!puuid) {
-    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0, accountLevel: 0 };
   }
 
   // force=true で最新20試合を取得
   const matches = await henrikFetch(`/v3/matches/ap/${name}/${tag}?mode=competitive&size=20&force=true`) as Record<string, unknown>[] | null;
   if (!matches || !Array.isArray(matches) || matches.length === 0) {
-    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0, accountLevel: 0 };
   }
 
   let totalKills = 0, totalDeaths = 0, totalAssists = 0;
   let totalHeadshots = 0, totalBodyshots = 0, totalLegshots = 0;
   let wins = 0;
   let validMatches = 0;
+  let accountLevel = 0;
 
   for (const match of matches) {
     const players = ((match?.players as Record<string, unknown>)?.all_players as Record<string, unknown>[]) ?? [];
     const me = players.find(p => p.puuid === puuid) as Record<string, unknown> | undefined;
     if (!me) continue;
 
+    if (validMatches === 0) accountLevel = (me?.level as number) ?? 0;
     const stats = (me?.stats ?? {}) as Record<string, number>;
     const kills: number = stats.kills ?? 0;
     const deaths: number = stats.deaths ?? 0;
@@ -129,7 +132,7 @@ async function fetchHenrikStats(
   }
 
   if (validMatches === 0) {
-    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0 };
+    return { competitiveTier, avgKda: 0, hsRate: 0, winRate: 0, matchCount: 0, accountLevel: 0 };
   }
 
   const avgKda = totalDeaths > 0
@@ -140,7 +143,7 @@ async function fetchHenrikStats(
   const hsRate = totalShots > 0 ? totalHeadshots / totalShots : 0;
   const winRate = wins / validMatches;
 
-  return { competitiveTier, avgKda, hsRate, winRate, matchCount: validMatches };
+  return { competitiveTier, avgKda, hsRate, winRate, matchCount: validMatches, accountLevel };
 }
 
 // ── Main export ─────────────────────────────────────────────────────────────
@@ -157,15 +160,14 @@ export async function verifyAndBuildPlayer(
   const hsRate = stats?.hsRate ?? 0;
   const winRate = stats?.winRate ?? 0;
   const matchCount = stats?.matchCount ?? 0;
+  const accountLevel = stats?.accountLevel ?? 0;
 
   const rankValue = RANK_VALUES[competitiveTier] ?? 0;
   const performanceScore = matchCount > 0
     ? calcPerformanceScore(avgKda, hsRate, winRate)
     : 0.5;
   const totalScore = calcTotalScore(rankValue, performanceScore);
-  const isSmurf = matchCount > 0
-    ? detectSmurf(matchCount, winRate, avgKda)
-    : false;
+  const isSmurf = detectSmurf(accountLevel, avgKda);
 
   return {
     gameName,
@@ -179,6 +181,7 @@ export async function verifyAndBuildPlayer(
     matchCount,
     winRate,
     avgKda,
+    accountLevel,
     isSmurf,
   };
 }
