@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchPlayerData } from '@/lib/riot-api';
+import { verifyAndBuildPlayer } from '@/lib/riot-api';
 
 export async function POST(req: NextRequest) {
   try {
-    const { gameName, tagLine } = await req.json();
+    const { gameName, tagLine, competitiveTier } = await req.json();
 
     if (!gameName || !tagLine) {
       return NextResponse.json(
@@ -12,9 +12,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const playerData = await fetchPlayerData(
+    const tier = typeof competitiveTier === 'number' ? competitiveTier : 0;
+    const playerData = await verifyAndBuildPlayer(
       String(gameName).trim(),
-      String(tagLine).trim()
+      String(tagLine).trim(),
+      tier
     );
 
     return NextResponse.json(playerData);

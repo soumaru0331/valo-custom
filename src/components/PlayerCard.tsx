@@ -35,7 +35,7 @@ export function PlayerCard({ player, onRemove }: Props) {
         </p>
         <p className="text-red-400 text-sm">{rankName}</p>
         <p className="text-[#768079] text-xs">
-          スコア: {player.totalScore.toFixed(1)} | KDA: {player.avgKda.toFixed(2)} | 勝率: {(player.winRate * 100).toFixed(0)}%
+          スコア: {player.totalScore.toFixed(1)}
         </p>
       </div>
       <div className="flex gap-1 flex-shrink-0">
