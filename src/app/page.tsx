@@ -8,6 +8,7 @@ import { PlayerInputForm } from '@/components/PlayerInputForm';
 import { ModeSelector } from '@/components/ModeSelector';
 import { TeamResultView } from '@/components/TeamResultView';
 import { BanPhase } from '@/components/BanPhase';
+import { AgentDecorations } from '@/components/AgentDecorations';
 
 type AppStep = 'input' | 'mode' | 'result' | 'ban';
 
@@ -37,7 +38,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0F1923] p-4 max-w-2xl mx-auto">
+    <>
+    <AgentDecorations />
+    <main className="min-h-screen bg-[#0F1923] p-4 max-w-2xl mx-auto relative" style={{ zIndex: 1 }}>
       <div className="mb-8 pt-4">
         <h1 className="text-4xl font-black uppercase tracking-widest text-white">
           VALO<span className="text-red-500">CUSTOM</span>
@@ -88,5 +91,6 @@ export default function Home() {
         />
       )}
     </main>
+    </>
   );
 }
