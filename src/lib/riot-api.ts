@@ -3,10 +3,11 @@
 
 import { PlayerData } from '@/types';
 import { RANK_VALUES } from '@/data/ranks';
-import { calcTotalScore } from '@/lib/scoring';
+import { calcTotalScore, calcPerformanceScore, detectSmurf } from '@/lib/scoring';
 
 const API_KEY = process.env.RIOT_API_KEY ?? '';
 const ACCOUNT_BASE = 'https://asia.api.riotgames.com';
+const TRACKER_BASE = 'https://api.tracker.gg/api/v2/valorant/standard/profile/riot';
 
 async function riotFetch(url: string): Promise<Response> {
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -44,15 +45,101 @@ async function getPuuid(gameName: string, tagLine: string): Promise<string> {
   return data.puuid as string;
 }
 
-// Verify player exists via Riot Account API, then build PlayerData with manually chosen rank.
+interface TrackerStats {
+  competitiveTier: number;
+  avgKda: number;
+  winRate: number;
+  matchCount: number;
+}
+
+function extractTierFromIconUrl(iconUrl: string): number {
+  // e.g. "https://trackercdn.com/.../tiersv2/21.png" → 21
+  const match = iconUrl.match(/tiersv2\/(\d+)\.png/);
+  return match ? parseInt(match[1]) : 0;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getStatValue(stats: any, key: string): number {
+  const raw = stats?.[key]?.value;
+  return raw !== undefined && raw !== null ? parseFloat(String(raw)) || 0 : 0;
+}
+
+async function fetchTrackerStats(gameName: string, tagLine: string): Promise<TrackerStats | null> {
+  const encoded = encodeURIComponent(`${gameName}#${tagLine}`);
+  const url = `${TRACKER_BASE}/${encoded}?segments=overview`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Referer': 'https://tracker.gg/valorant',
+        'Accept': 'application/json',
+        'Accept-Language': 'ja,en;q=0.9',
+      },
+      next: { revalidate: 0 },
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const segments: any[] = data?.data?.segments ?? [];
+    if (!segments.length) return null;
+
+    // Overview segment has current rank + aggregate stats
+    const overview = segments.find(s => s.type === 'overview');
+    // Season segment has per-season stats
+    const season = segments.find(s => s.type === 'season');
+    // Peak rating segment for fallback rank
+    const peakRating = segments.find(s => s.type === 'peak-rating');
+
+    const statSeg = season ?? overview;
+    const stats = statSeg?.stats ?? {};
+
+    // Extract current rank from overview, fall back to peak-rating
+    let competitiveTier = 0;
+    const rankIconUrl: string = overview?.stats?.rank?.metadata?.iconUrl ?? '';
+    if (rankIconUrl) {
+      competitiveTier = extractTierFromIconUrl(rankIconUrl);
+    }
+    if (!competitiveTier && peakRating) {
+      const peakIconUrl: string = peakRating?.stats?.peakRating?.metadata?.iconUrl ?? '';
+      competitiveTier = extractTierFromIconUrl(peakIconUrl);
+    }
+
+    const avgKda = getStatValue(stats, 'kDRatio');
+    const winRatePct = getStatValue(stats, 'matchesWinPct');
+    const matchCount = getStatValue(stats, 'matchesPlayed');
+
+    return {
+      competitiveTier,
+      avgKda,
+      winRate: winRatePct / 100,
+      matchCount,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyAndBuildPlayer(
   gameName: string,
-  tagLine: string,
-  competitiveTier: number
+  tagLine: string
 ): Promise<PlayerData> {
   const puuid = await getPuuid(gameName, tagLine);
+  const tracker = await fetchTrackerStats(gameName, tagLine);
+
+  const competitiveTier = tracker?.competitiveTier ?? 0;
+  const avgKda = tracker?.avgKda ?? 0;
+  const winRate = tracker?.winRate ?? 0;
+  const matchCount = tracker?.matchCount ?? 0;
+
   const rankValue = RANK_VALUES[competitiveTier] ?? 0;
-  const totalScore = calcTotalScore(rankValue, 0.5); // performance defaults to mid (0.5)
+  const performanceScore = tracker
+    ? calcPerformanceScore(avgKda, 0, winRate)
+    : 0.5;
+  const totalScore = calcTotalScore(rankValue, performanceScore);
+  const isSmurf = tracker ? detectSmurf(matchCount, winRate, avgKda) : false;
 
   return {
     gameName,
@@ -60,12 +147,12 @@ export async function verifyAndBuildPlayer(
     puuid,
     competitiveTier,
     rankValue,
-    performanceScore: 0.5,
+    performanceScore,
     totalScore,
     topAgents: [],
-    matchCount: 0,
-    winRate: 0,
-    avgKda: 0,
-    isSmurf: false,
+    matchCount,
+    winRate,
+    avgKda,
+    isSmurf,
   };
 }

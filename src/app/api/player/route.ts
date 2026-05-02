@@ -3,7 +3,7 @@ import { verifyAndBuildPlayer } from '@/lib/riot-api';
 
 export async function POST(req: NextRequest) {
   try {
-    const { gameName, tagLine, competitiveTier } = await req.json();
+    const { gameName, tagLine } = await req.json();
 
     if (!gameName || !tagLine) {
       return NextResponse.json(
@@ -12,11 +12,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tier = typeof competitiveTier === 'number' ? competitiveTier : 0;
     const playerData = await verifyAndBuildPlayer(
       String(gameName).trim(),
-      String(tagLine).trim(),
-      tier
+      String(tagLine).trim()
     );
 
     return NextResponse.json(playerData);

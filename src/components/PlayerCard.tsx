@@ -17,7 +17,7 @@ export function PlayerCard({ player, onRemove }: Props) {
     <div className="valo-panel relative flex items-center gap-3">
       {player.isSmurf && (
         <span className="absolute top-2 right-8 text-yellow-400 text-xs font-bold bg-yellow-900/40 px-1 rounded">
-          ⚠ サブ垢疑惑
+          サブ垢疑惑
         </span>
       )}
       <Image
@@ -34,9 +34,17 @@ export function PlayerCard({ player, onRemove }: Props) {
           <span className="text-[#768079] text-sm ml-1">#{player.tagLine}</span>
         </p>
         <p className="text-red-400 text-sm">{rankName}</p>
-        <p className="text-[#768079] text-xs">
-          スコア: {player.totalScore.toFixed(1)}
-        </p>
+        <div className="flex gap-3 text-[#768079] text-xs">
+          {player.matchCount > 0 ? (
+            <>
+              <span>KDA: {player.avgKda.toFixed(2)}</span>
+              <span>WR: {(player.winRate * 100).toFixed(0)}%</span>
+              <span>スコア: {player.totalScore.toFixed(1)}</span>
+            </>
+          ) : (
+            <span>スコア: {player.totalScore.toFixed(1)}</span>
+          )}
+        </div>
       </div>
       <div className="flex gap-1 flex-shrink-0">
         {player.topAgents.map(agent => (
