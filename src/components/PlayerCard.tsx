@@ -37,7 +37,7 @@ export function PlayerCard({ player, onRemove }: Props) {
         <div className="flex gap-3 text-[#768079] text-xs">
           {player.matchCount > 0 ? (
             <>
-              <span>KDA: {player.avgKda.toFixed(2)}</span>
+              <span>KD: {player.avgKda.toFixed(2)}</span>
               <span>WR: {(player.winRate * 100).toFixed(0)}%</span>
               <span>スコア: {player.totalScore.toFixed(1)}</span>
             </>

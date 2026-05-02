@@ -139,8 +139,8 @@ async function fetchHenrikStats(
   }
 
   const avgKda = totalDeaths > 0
-    ? (totalKills + totalAssists) / totalDeaths
-    : totalKills + totalAssists;
+    ? totalKills / totalDeaths
+    : totalKills;
 
   const totalShots = totalHeadshots + totalBodyshots + totalLegshots;
   const hsRate = totalShots > 0 ? totalHeadshots / totalShots : 0;
