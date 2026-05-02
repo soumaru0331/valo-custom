@@ -67,10 +67,21 @@ async function riotFetch(url: string): Promise<Response> {
   throw new Error('Rate limit exceeded after 3 retries');
 }
 
+function checkStatus(res: Response, context: string): void {
+  if (res.ok) return;
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('Riot APIキーが無効または期限切れです。developer.riotgames.com で新しいキーを取得してください。');
+  }
+  if (res.status === 404) {
+    throw new Error(context);
+  }
+  throw new Error(`Riot API error ${res.status}: ${context}`);
+}
+
 async function getPuuid(gameName: string, tagLine: string): Promise<string> {
   const url = `${ACCOUNT_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
   const res = await riotFetch(url);
-  if (!res.ok) throw new Error(`Player not found: ${gameName}#${tagLine}`);
+  checkStatus(res, `プレイヤーが見つかりません: ${gameName}#${tagLine}`);
   const data = await res.json();
   return data.puuid as string;
 }
@@ -78,7 +89,7 @@ async function getPuuid(gameName: string, tagLine: string): Promise<string> {
 async function getMatchIds(puuid: string): Promise<string[]> {
   const url = `${MATCH_BASE}/val/match/v1/matchlists/by-puuid/${puuid}`;
   const res = await riotFetch(url);
-  if (!res.ok) throw new Error('Failed to fetch match list');
+  checkStatus(res, 'マッチリストの取得に失敗しました');
   const data = await res.json();
   const history: RiotMatchListEntry[] = data.history ?? [];
   const competitive = history.filter(m => m.queueId === 'competitive');
@@ -88,7 +99,7 @@ async function getMatchIds(puuid: string): Promise<string[]> {
 async function getMatchDetail(matchId: string): Promise<RiotMatch> {
   const url = `${MATCH_BASE}/val/match/v1/matches/${matchId}`;
   const res = await riotFetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch match ${matchId}`);
+  checkStatus(res, `マッチ詳細の取得に失敗しました: ${matchId}`);
   return res.json() as Promise<RiotMatch>;
 }
 
