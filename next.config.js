@@ -1,10 +1,16 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'media.valorant-api.com' },
       { protocol: 'https', hostname: 'valorant-api.com' },
     ],
+  },
+  webpack(config) {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
+    return config;
   },
 };
 
