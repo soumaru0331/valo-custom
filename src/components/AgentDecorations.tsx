@@ -38,17 +38,25 @@ export function AgentDecorations() {
 
   if (pair.length < 2) return null;
 
+  const maskStyle = 'linear-gradient(to top, black 60%, transparent 100%)';
+
   return (
     <>
       {/* Left agent */}
-      <div className="fixed left-0 bottom-0 w-56 xl:w-64 pointer-events-none select-none hidden lg:block"
-        style={{ zIndex: 0 }}>
-        <div style={{ opacity: 0.18, maskImage: 'linear-gradient(to top, black 40%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to top, black 40%, transparent 100%)' }}>
+      <div
+        className="fixed left-0 bottom-0 w-56 xl:w-72 pointer-events-none select-none hidden lg:block"
+        style={{ zIndex: 0 }}
+      >
+        <div style={{
+          opacity: 0.40,
+          maskImage: maskStyle,
+          WebkitMaskImage: maskStyle,
+        }}>
           <Image
             src={portraitUrl(pair[0].uuid)}
             alt={pair[0].name}
-            width={256}
-            height={512}
+            width={288}
+            height={576}
             className="w-full h-auto object-contain object-bottom"
             unoptimized
             priority={false}
@@ -57,14 +65,21 @@ export function AgentDecorations() {
       </div>
 
       {/* Right agent */}
-      <div className="fixed right-0 bottom-0 w-56 xl:w-64 pointer-events-none select-none hidden lg:block"
-        style={{ zIndex: 0 }}>
-        <div style={{ opacity: 0.18, maskImage: 'linear-gradient(to top, black 40%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to top, black 40%, transparent 100%)', transform: 'scaleX(-1)' }}>
+      <div
+        className="fixed right-0 bottom-0 w-56 xl:w-72 pointer-events-none select-none hidden lg:block"
+        style={{ zIndex: 0 }}
+      >
+        <div style={{
+          opacity: 0.40,
+          maskImage: maskStyle,
+          WebkitMaskImage: maskStyle,
+          transform: 'scaleX(-1)',
+        }}>
           <Image
             src={portraitUrl(pair[1].uuid)}
             alt={pair[1].name}
-            width={256}
-            height={512}
+            width={288}
+            height={576}
             className="w-full h-auto object-contain object-bottom"
             unoptimized
             priority={false}
