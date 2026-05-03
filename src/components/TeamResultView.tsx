@@ -23,16 +23,25 @@ function PlayerRow({ player }: PlayerRowProps) {
           unoptimized
         />
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold truncate">
+          <p className="text-white font-bold truncate text-sm">
             {player.gameName}
             <span className="text-[#768079] text-xs ml-1">#{player.tagLine}</span>
             {player.isSmurf && (
               <span className="ml-2 text-yellow-400 text-xs">⚠ サブ垢</span>
             )}
           </p>
-          <p className="text-[#768079] text-xs">
-            {rankName} | スコア: {player.totalScore.toFixed(1)}
-          </p>
+          <div className="flex gap-2 text-[#768079] text-xs flex-wrap">
+            <span>{rankName}</span>
+            {player.matchCount > 0 && (
+              <>
+                <span className="text-[#4a5565]">|</span>
+                <span>KD {player.avgKda.toFixed(2)}</span>
+                <span>WR {(player.winRate * 100).toFixed(0)}%</span>
+              </>
+            )}
+            <span className="text-[#4a5565]">|</span>
+            <span>スコア <span className="text-white">{player.totalScore.toFixed(1)}</span></span>
+          </div>
         </div>
         <div className="flex gap-1 flex-shrink-0">
           {player.topAgents.map(a => (
@@ -53,6 +62,10 @@ function PlayerRow({ player }: PlayerRowProps) {
   );
 }
 
+function teamTotalScore(players: PlayerWithHandicap[]): number {
+  return players.reduce((sum, p) => sum + p.totalScore, 0);
+}
+
 interface Props {
   result: TeamResultWithHandicaps;
   onSaveAndBan: () => void;
@@ -70,6 +83,9 @@ export function TeamResultView({
   bansPerTeam,
   onBansPerTeamChange,
 }: Props) {
+  const scoreA = teamTotalScore(result.teamA);
+  const scoreB = teamTotalScore(result.teamB);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -85,24 +101,38 @@ export function TeamResultView({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="valo-panel border-t-2 border-blue-500">
-          <h3 className="text-blue-400 font-bold uppercase tracking-wider mb-2">チーム A</h3>
+        {/* チームA */}
+        <div className="valo-panel border-t-4 border-blue-500 overflow-hidden">
+          <div className="bg-blue-500/10 -mx-4 -mt-4 px-4 pt-3 pb-2 mb-2 border-b border-blue-500/20">
+            <h3 className="text-blue-400 font-bold uppercase tracking-wider text-lg">
+              チーム A
+            </h3>
+            <p className="text-blue-300/60 text-xs">合計スコア: {scoreA.toFixed(1)}</p>
+          </div>
           {result.teamA.map(p => (
             <PlayerRow key={p.puuid} player={p} />
           ))}
         </div>
-        <div className="valo-panel border-t-2 border-red-500">
-          <h3 className="text-red-400 font-bold uppercase tracking-wider mb-2">チーム B</h3>
+
+        {/* チームB */}
+        <div className="valo-panel border-t-4 border-red-500 overflow-hidden">
+          <div className="bg-red-500/10 -mx-4 -mt-4 px-4 pt-3 pb-2 mb-2 border-b border-red-500/20">
+            <h3 className="text-red-400 font-bold uppercase tracking-wider text-lg">
+              チーム B
+            </h3>
+            <p className="text-red-300/60 text-xs">合計スコア: {scoreB.toFixed(1)}</p>
+          </div>
           {result.teamB.map(p => (
             <PlayerRow key={p.puuid} player={p} />
           ))}
         </div>
       </div>
 
-      <p className="text-center text-[#768079] text-sm">
-        スコア差:{' '}
-        <span className="text-white font-bold">{result.scoreDiff.toFixed(1)}</span>
-      </p>
+      {/* スコア差 */}
+      <div className="text-center py-3 border border-[#2a3540] bg-[#1a2530]">
+        <p className="text-[#768079] text-xs uppercase tracking-widest mb-1">スコア差</p>
+        <p className="text-white text-3xl font-black">{result.scoreDiff.toFixed(1)}</p>
+      </div>
 
       <MapRoulette />
 
