@@ -9,6 +9,8 @@ import { ModeSelector } from '@/components/ModeSelector';
 import { TeamResultView } from '@/components/TeamResultView';
 import { BanPhase } from '@/components/BanPhase';
 import { AgentDecorations } from '@/components/AgentDecorations';
+import { MapBackground } from '@/components/MapBackground';
+import { HeroAgent } from '@/components/HeroAgent';
 import { StepBar, AppStep } from '@/components/StepBar';
 
 export default function Home() {
@@ -38,15 +40,19 @@ export default function Home() {
 
   return (
     <>
+      <MapBackground />
       <AgentDecorations />
-      <main className="min-h-screen bg-[#0F1923] p-4 max-w-2xl mx-auto relative" style={{ zIndex: 1 }}>
+      <main className="min-h-screen bg-[#0F1923]/90 p-4 max-w-2xl mx-auto relative" style={{ zIndex: 1 }}>
 
         {/* ヘッダー */}
-        <div className="mb-6 pt-4 valo-diagonal-bg border-b border-red-500/40 pb-4">
-          <h1 className="text-5xl font-black uppercase tracking-widest text-white leading-none">
-            VALO<span className="text-red-500">CUSTOM</span>
-          </h1>
-          <p className="text-[#768079] text-sm mt-1">カスタムマッチ チームバランサー</p>
+        <div className="relative overflow-hidden mb-6 pt-4 valo-diagonal-bg border-b border-red-500/40 pb-4 min-h-[100px]">
+          <div className="relative" style={{ zIndex: 2 }}>
+            <h1 className="text-5xl font-black uppercase tracking-widest text-white leading-none">
+              VALO<span className="text-red-500">CUSTOM</span>
+            </h1>
+            <p className="text-[#768079] text-sm mt-1">カスタムマッチ チームバランサー</p>
+          </div>
+          <HeroAgent />
         </div>
 
         {/* ステップバー */}
