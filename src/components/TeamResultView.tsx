@@ -12,9 +12,25 @@ interface PlayerRowProps {
 
 function PlayerRow({ player }: PlayerRowProps) {
   const rankName = RANK_NAMES[player.competitiveTier] ?? 'アンランク';
+  const mainAgent = player.topAgents[0] ?? null;
+
   return (
-    <div className="p-3 border-b border-white/5 last:border-0">
-      <div className="flex items-center gap-2">
+    <div className="relative p-3 border-b border-white/5 last:border-0 overflow-hidden">
+      {/* エージェント背景 */}
+      {mainAgent && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none select-none" style={{ zIndex: 0 }}>
+          <Image
+            src={mainAgent.iconUrl}
+            alt={mainAgent.name}
+            width={44}
+            height={44}
+            className="rounded-full"
+            style={{ opacity: 0.10 }}
+            unoptimized
+          />
+        </div>
+      )}
+      <div className="relative flex items-center gap-2" style={{ zIndex: 1 }}>
         <Image
           src={`${RANK_ICON_BASE}${player.competitiveTier}/smallicon.png`}
           alt={rankName}
@@ -49,8 +65,8 @@ function PlayerRow({ player }: PlayerRowProps) {
               key={a.id}
               src={a.iconUrl}
               alt={a.name}
-              width={22}
-              height={22}
+              width={32}
+              height={32}
               className="rounded-full"
               unoptimized
             />
