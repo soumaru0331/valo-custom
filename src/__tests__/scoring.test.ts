@@ -1,25 +1,22 @@
 import { calcPerformanceScore, calcTotalScore, detectSmurf } from '@/lib/scoring';
 
 describe('calcPerformanceScore', () => {
-  it('returns 0 for zero stats', () => {
-    expect(calcPerformanceScore(0, 0, 0)).toBe(0);
+  it('returns 0 for KD=0', () => {
+    expect(calcPerformanceScore(0)).toBe(0);
   });
 
-  it('returns 1.0 for perfect stats', () => {
-    // KDA=5 (normalized to 1.0), hsRate=1.0, winRate=1.0
-    expect(calcPerformanceScore(5, 1.0, 1.0)).toBeCloseTo(1.0);
+  it('returns 1.0 for KD >= 2.5', () => {
+    expect(calcPerformanceScore(2.5)).toBeCloseTo(1.0);
+    expect(calcPerformanceScore(5)).toBeCloseTo(1.0);
   });
 
-  it('clamps KDA above 5 to 1.0', () => {
-    const score = calcPerformanceScore(10, 0, 0);
-    const scoreWith5 = calcPerformanceScore(5, 0, 0);
-    expect(score).toBeCloseTo(scoreWith5);
+  it('clamps KD above 2.5 to 1.0', () => {
+    expect(calcPerformanceScore(10)).toBeCloseTo(1.0);
   });
 
-  it('returns correct weighted result', () => {
-    // KDA=2.5 → normalized=0.5, hsRate=0.3, winRate=0.6
-    // 0.5*0.4 + 0.3*0.3 + 0.6*0.3 = 0.2 + 0.09 + 0.18 = 0.47
-    expect(calcPerformanceScore(2.5, 0.3, 0.6)).toBeCloseTo(0.47);
+  it('returns correct normalized result', () => {
+    // KD=1.25 → 1.25/2.5 = 0.5
+    expect(calcPerformanceScore(1.25)).toBeCloseTo(0.5);
   });
 });
 

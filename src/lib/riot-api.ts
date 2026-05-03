@@ -167,7 +167,7 @@ export async function verifyAndBuildPlayer(
 
   const rankValue = RANK_VALUES[competitiveTier] ?? 0;
   const performanceScore = matchCount > 0
-    ? calcPerformanceScore(avgKda, hsRate, winRate)
+    ? calcPerformanceScore(avgKda)
     : 0.5;
   const totalScore = calcTotalScore(rankValue, performanceScore);
   const isSmurf = detectSmurf(accountLevel, avgKda);
