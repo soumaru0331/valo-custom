@@ -32,3 +32,26 @@ body {
     @apply bg-[#0F1923] border border-[#2a3540] text-white px-3 py-2 focus:border-red-500 focus:outline-none w-full;
   }
 }
+
+/* スケルトンローディングアニメーション */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+.skeleton {
+  background-color: #2a3540;
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* VALO風斜線背景パターン */
+.valo-diagonal-bg {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 70, 85, 0.03) 10px,
+    rgba(255, 70, 85, 0.03) 11px
+  );
+}
