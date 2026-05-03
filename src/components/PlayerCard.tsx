@@ -14,20 +14,40 @@ interface Props {
 
 const RANK_OPTIONS = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27];
 
+function getRankBorderColor(tier: number): string {
+  if (tier <= 2)  return '#4a5060'; // アンランク
+  if (tier <= 5)  return '#8B8B8B'; // アイアン
+  if (tier <= 8)  return '#CD7F32'; // ブロンズ
+  if (tier <= 11) return '#C0C0C0'; // シルバー
+  if (tier <= 14) return '#FFD700'; // ゴールド
+  if (tier <= 17) return '#5BC4D8'; // プラチナ
+  if (tier <= 20) return '#4169E1'; // ダイヤ
+  if (tier <= 23) return '#00C853'; // アセンダント
+  if (tier <= 26) return '#FF1744'; // イモータル
+  return '#FFE500'; // レディアント
+}
+
 export function PlayerCard({ player, onRemove, onUpdateTier }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const rankName = RANK_NAMES[player.competitiveTier] ?? 'アンランク';
   const rankIconUrl = `${RANK_ICON_BASE}${player.competitiveTier}/smallicon.png`;
   const noStats = player.matchCount === 0;
+  const borderColor = getRankBorderColor(player.competitiveTier);
 
   return (
-    <div className="valo-panel relative flex flex-col gap-2">
+    <div
+      className="valo-panel relative flex flex-col gap-2"
+      style={{ borderLeft: `3px solid ${borderColor}` }}
+    >
+      {/* サブ垢疑惑バナー */}
+      {player.isSmurf && (
+        <div className="bg-yellow-500/15 border border-yellow-500/40 rounded px-2 py-1 flex items-center gap-2 -mt-1 -mx-1">
+          <span className="text-yellow-400 text-xs font-bold">⚠ サブ垢疑惑</span>
+          <span className="text-yellow-300/60 text-xs">Lv{player.accountLevel} / KD {player.avgKda.toFixed(2)}</span>
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
-        {player.isSmurf && (
-          <span className="absolute top-2 right-8 text-yellow-400 text-xs font-bold bg-yellow-900/40 px-1 rounded">
-            サブ垢疑惑
-          </span>
-        )}
         <Image
           src={rankIconUrl}
           alt={rankName}
@@ -41,7 +61,7 @@ export function PlayerCard({ player, onRemove, onUpdateTier }: Props) {
             {player.gameName}
             <span className="text-[#768079] text-sm ml-1">#{player.tagLine}</span>
           </p>
-          <p className="text-red-400 text-sm">{rankName}</p>
+          <p className="text-sm" style={{ color: borderColor }}>{rankName}</p>
           <div className="flex gap-3 text-[#768079] text-xs items-center">
             {!noStats ? (
               <>
