@@ -9,8 +9,7 @@ import { ModeSelector } from '@/components/ModeSelector';
 import { TeamResultView } from '@/components/TeamResultView';
 import { BanPhase } from '@/components/BanPhase';
 import { AgentDecorations } from '@/components/AgentDecorations';
-
-type AppStep = 'input' | 'mode' | 'result' | 'ban';
+import { StepBar, AppStep } from '@/components/StepBar';
 
 export default function Home() {
   const [step, setStep] = useState<AppStep>('input');
@@ -39,58 +38,63 @@ export default function Home() {
 
   return (
     <>
-    <AgentDecorations />
-    <main className="min-h-screen bg-[#0F1923] p-4 max-w-2xl mx-auto relative" style={{ zIndex: 1 }}>
-      <div className="mb-8 pt-4">
-        <h1 className="text-4xl font-black uppercase tracking-widest text-white">
-          VALO<span className="text-red-500">CUSTOM</span>
-        </h1>
-        <p className="text-[#768079] text-sm">カスタムマッチ チームバランサー</p>
-      </div>
+      <AgentDecorations />
+      <main className="min-h-screen bg-[#0F1923] p-4 max-w-2xl mx-auto relative" style={{ zIndex: 1 }}>
 
-      {step === 'input' && (
-        <PlayerInputForm
-          players={players}
-          onPlayersChange={setPlayers}
-          onNext={() => setStep('mode')}
-        />
-      )}
-
-      {step === 'mode' && (
-        <div className="space-y-4">
-          <button
-            className="text-[#768079] text-sm hover:text-white"
-            onClick={() => setStep('input')}
-          >
-            ← プレイヤー編集に戻る
-          </button>
-          <ModeSelector
-            selected={mode}
-            onSelect={setMode}
-            onConfirm={handleRunBalance}
-          />
+        {/* ヘッダー */}
+        <div className="mb-6 pt-4 valo-diagonal-bg border-b border-red-500/40 pb-4">
+          <h1 className="text-5xl font-black uppercase tracking-widest text-white leading-none">
+            VALO<span className="text-red-500">CUSTOM</span>
+          </h1>
+          <p className="text-[#768079] text-sm mt-1">カスタムマッチ チームバランサー</p>
         </div>
-      )}
 
-      {step === 'result' && resultWithHandicaps && (
-        <TeamResultView
-          result={resultWithHandicaps}
-          onSaveAndBan={handleSaveAndBan}
-          onReshuffle={handleRunBalance}
-          onBack={() => setStep('mode')}
-          bansPerTeam={bansPerTeam}
-          onBansPerTeamChange={setBansPerTeam}
-        />
-      )}
+        {/* ステップバー */}
+        <StepBar current={step} />
 
-      {step === 'ban' && resultWithHandicaps && (
-        <BanPhase
-          result={resultWithHandicaps}
-          bansPerTeam={bansPerTeam}
-          onComplete={() => setStep('input')}
-        />
-      )}
-    </main>
+        {step === 'input' && (
+          <PlayerInputForm
+            players={players}
+            onPlayersChange={setPlayers}
+            onNext={() => setStep('mode')}
+          />
+        )}
+
+        {step === 'mode' && (
+          <div className="space-y-4">
+            <button
+              className="text-[#768079] text-sm hover:text-white"
+              onClick={() => setStep('input')}
+            >
+              ← プレイヤー編集に戻る
+            </button>
+            <ModeSelector
+              selected={mode}
+              onSelect={setMode}
+              onConfirm={handleRunBalance}
+            />
+          </div>
+        )}
+
+        {step === 'result' && resultWithHandicaps && (
+          <TeamResultView
+            result={resultWithHandicaps}
+            onSaveAndBan={handleSaveAndBan}
+            onReshuffle={handleRunBalance}
+            onBack={() => setStep('mode')}
+            bansPerTeam={bansPerTeam}
+            onBansPerTeamChange={setBansPerTeam}
+          />
+        )}
+
+        {step === 'ban' && resultWithHandicaps && (
+          <BanPhase
+            result={resultWithHandicaps}
+            bansPerTeam={bansPerTeam}
+            onComplete={() => setStep('input')}
+          />
+        )}
+      </main>
     </>
   );
 }
